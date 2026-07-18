@@ -8,7 +8,8 @@
 
 Herramienta de línea de comandos en Python para analizar gastos personales desde un
 archivo CSV. Genera un reporte con totales por categoría (con gráfico de barras en
-texto), totales por mes, gasto promedio y gasto mayor, en formato texto o JSON.
+texto), totales por mes con variación porcentual, gasto promedio y gasto mayor, en
+formato texto, JSON o Markdown, con filtros por rango de fechas y por categoría.
 
 Sin dependencias externas: solo la librería estándar.
 
@@ -16,10 +17,16 @@ Sin dependencias externas: solo la librería estándar.
 
 - **Parseo robusto del CSV**: las filas corruptas no se silencian; se reportan en
   stderr con número de línea y motivo, y el análisis continúa con las filas válidas.
-- **Dos formatos de salida**: reporte de texto con barras proporcionales o JSON
-  listo para consumir desde otros programas.
+- **Tres formatos de salida**: reporte de texto con barras proporcionales, JSON
+  listo para consumir desde otros programas o tablas Markdown listas para pegar
+  en un issue o README.
+- **Filtros por fecha y categoría**: `--desde` y `--hasta` (rango inclusivo) y
+  `--categoria` (insensible a mayúsculas), combinables entre sí y con `--formato`.
+- **Comparativa mensual**: cada mes muestra la variación porcentual respecto al
+  mes anterior en todos los formatos.
 - **Funciones puras de análisis** reutilizables desde Python (`total`, `promedio`,
-  `total_por_categoria`, `total_por_mes`, `gasto_mayor`).
+  `total_por_categoria`, `total_por_mes`, `gasto_mayor`, `filtrar_gastos`,
+  `variacion_mensual`).
 - **Datos de ejemplo incluidos** dentro del paquete para probar la herramienta al
   instante.
 - **Compatible con la consola de Windows**: la salida se reconfigura a UTF-8 para
@@ -51,10 +58,27 @@ analizador-gastos ruta/a/mis_gastos.csv
 # Reporte en JSON
 analizador-gastos ruta/a/mis_gastos.csv --formato json
 
+# Reporte en Markdown (tablas listas para pegar en un issue o README)
+analizador-gastos ruta/a/mis_gastos.csv --formato markdown
+
+# Solo los gastos de un rango de fechas (inclusivo)
+analizador-gastos ruta/a/mis_gastos.csv --desde 2026-06-01 --hasta 2026-06-30
+
+# Solo los gastos de una categoría (insensible a mayúsculas)
+analizador-gastos ruta/a/mis_gastos.csv --categoria Comida
+
+# Filtros combinados entre sí y con el formato
+analizador-gastos ruta/a/mis_gastos.csv --desde 2026-06-01 --categoria comida --formato markdown
+
 # Versión y ayuda
 analizador-gastos --version
 analizador-gastos --help
 ```
+
+Los filtros se aplican antes del análisis. Una fecha mal formada o un `--desde`
+posterior a `--hasta` terminan con un error claro y código de salida 2; si los
+filtros no dejan ningún gasto, la CLI muestra un mensaje claro en lugar de un
+reporte vacío.
 
 ### Formato del CSV
 
@@ -90,13 +114,29 @@ educacion       $    199.99   21.8% ██████████
 ...
 
 --- Por mes ---
-2026-05         $    253.70
-2026-06         $    327.25
-2026-07         $    337.19
+2026-05         $    253.70  (—)
+2026-06         $    327.25  (+29.0%)
+2026-07         $    337.19  (+3.0%)
 ```
 
+Cada mes muestra entre paréntesis la variación porcentual respecto al mes
+anterior; el primer mes muestra `(—)` porque no tiene referencia.
+
 Con `--formato json` la salida es un objeto con `total_registros`, `total`,
-`promedio`, `gasto_mayor`, `por_categoria` y `por_mes`.
+`promedio`, `gasto_mayor`, `por_categoria`, `por_mes` y `variacion_pct`
+(variación porcentual de cada mes respecto al anterior; `null` cuando no está
+definida, como en el primer mes).
+
+Con `--formato markdown` la salida son tablas Markdown (resumen general, por
+categoría con porcentaje y por mes con variación); por ejemplo, la tabla por mes:
+
+```markdown
+| Mes | Monto | Variación |
+| --- | ---: | ---: |
+| 2026-05 | $253.70 | — |
+| 2026-06 | $327.25 | +29.0% |
+| 2026-07 | $337.19 | +3.0% |
+```
 
 ## Desarrollo
 
@@ -132,7 +172,7 @@ analizador-gastos/
 │       ├── modelos.py        # Dataclass Gasto
 │       ├── lector.py         # Parseo y validación del CSV
 │       ├── analisis.py       # Funciones puras de agregación
-│       ├── reporte.py        # Reportes en texto y JSON
+│       ├── reporte.py        # Reportes en texto, JSON y Markdown
 │       ├── cli.py            # Interfaz de línea de comandos
 │       └── datos/
 │           └── gastos_ejemplo.csv

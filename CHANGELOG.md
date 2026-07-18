@@ -5,6 +5,32 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato se basa en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/)
 y este proyecto se adhiere al [Versionado Semántico](https://semver.org/lang/es/).
 
+## [1.1.0] - 2026-07-18
+
+### Añadido
+
+- Filtros de CLI aplicados antes del análisis: `--desde AAAA-MM-DD` y
+  `--hasta AAAA-MM-DD` (rango inclusivo) y `--categoria` (insensible a
+  mayúsculas), combinables entre sí y con `--formato`. Una fecha mal formada
+  o un rango invertido (`--desde` posterior a `--hasta`) termina con un
+  error claro y código de salida 2; si los filtros no dejan gastos, la CLI
+  lo indica con un mensaje claro en lugar de un reporte vacío.
+- Función pura `filtrar_gastos` en `analisis` para filtrar por rango de
+  fechas y categoría.
+- Comparativa mensual: cada mes de los reportes muestra la variación
+  porcentual respecto al mes anterior (el primer mes muestra `(—)`),
+  calculada por la nueva función pura `variacion_mensual`. El reporte JSON
+  incorpora el campo `variacion_pct` (número o `null`) por mes.
+- Nuevo formato de salida `--formato markdown`: tablas Markdown (resumen
+  general, por categoría con porcentaje y por mes con variación) listas
+  para pegar en un issue o README.
+- Tests de los filtros, la variación mensual y el reporte Markdown.
+
+### Cambiado
+
+- El reporte de texto muestra la variación porcentual junto al total de
+  cada mes.
+
 ## [1.0.0] - 2026-07-18
 
 ### Añadido

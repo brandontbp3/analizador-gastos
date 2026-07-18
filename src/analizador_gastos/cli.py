@@ -3,15 +3,23 @@
 from __future__ import annotations
 
 import argparse
+import datetime
 import sys
 from collections.abc import Sequence
 from importlib import resources
 from pathlib import Path
 
 from analizador_gastos import __version__
+from analizador_gastos.analisis import filtrar_gastos
 from analizador_gastos.lector import ErrorFila, leer_gastos
 from analizador_gastos.modelos import Gasto
-from analizador_gastos.reporte import generar_reporte_json, generar_reporte_texto
+from analizador_gastos.reporte import (
+    generar_reporte_json,
+    generar_reporte_markdown,
+    generar_reporte_texto,
+)
+
+SIN_COINCIDENCIAS = "No hay gastos que coincidan con los filtros aplicados."
 
 
 def _configurar_consola_utf8() -> None:
@@ -23,6 +31,16 @@ def _configurar_consola_utf8() -> None:
     for flujo in (sys.stdout, sys.stderr):
         if hasattr(flujo, "reconfigure") and flujo.encoding and flujo.encoding.lower() != "utf-8":
             flujo.reconfigure(encoding="utf-8", errors="replace")
+
+
+def _fecha_iso(valor: str) -> datetime.date:
+    """Convierte un argumento ``AAAA-MM-DD`` en fecha, con error claro si es inválido."""
+    try:
+        return datetime.date.fromisoformat(valor)
+    except ValueError as error:
+        raise argparse.ArgumentTypeError(
+            f"fecha inválida: {valor!r} (se espera AAAA-MM-DD)"
+        ) from error
 
 
 def crear_parser() -> argparse.ArgumentParser:
@@ -39,9 +57,28 @@ def crear_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--formato",
-        choices=("texto", "json"),
+        choices=("texto", "json", "markdown"),
         default="texto",
         help="formato del reporte (por defecto: texto)",
+    )
+    parser.add_argument(
+        "--desde",
+        type=_fecha_iso,
+        default=None,
+        metavar="AAAA-MM-DD",
+        help="incluye solo gastos desde esta fecha, inclusive",
+    )
+    parser.add_argument(
+        "--hasta",
+        type=_fecha_iso,
+        default=None,
+        metavar="AAAA-MM-DD",
+        help="incluye solo gastos hasta esta fecha, inclusive",
+    )
+    parser.add_argument(
+        "--categoria",
+        default=None,
+        help="incluye solo gastos de esta categoría (insensible a mayúsculas)",
     )
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     return parser
@@ -62,10 +99,16 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     Returns:
         Código de salida del proceso: ``0`` si todo salió bien, ``1`` si hubo
-        un error al leer el archivo.
+        un error al leer el archivo. Los argumentos inválidos (fechas mal
+        formadas o ``--desde`` posterior a ``--hasta``) terminan con código
+        ``2`` vía ``SystemExit``, como el resto de errores de argparse.
     """
     _configurar_consola_utf8()
-    args = crear_parser().parse_args(argv)
+    parser = crear_parser()
+    args = parser.parse_args(argv)
+
+    if args.desde is not None and args.hasta is not None and args.desde > args.hasta:
+        parser.error(f"--desde ({args.desde}) no puede ser posterior a --hasta ({args.hasta})")
 
     try:
         if args.archivo is None:
@@ -85,8 +128,19 @@ def main(argv: Sequence[str] | None = None) -> int:
         for error_fila in errores:
             print(f"  línea {error_fila.linea}: {error_fila.motivo}", file=sys.stderr)
 
+    hay_filtros = args.desde is not None or args.hasta is not None or args.categoria is not None
+    if hay_filtros:
+        gastos = filtrar_gastos(
+            gastos, desde=args.desde, hasta=args.hasta, categoria=args.categoria
+        )
+        if not gastos:
+            print(SIN_COINCIDENCIAS)
+            return 0
+
     if args.formato == "json":
         print(generar_reporte_json(gastos))
+    elif args.formato == "markdown":
+        print(generar_reporte_markdown(gastos))
     else:
         print(generar_reporte_texto(gastos))
     return 0

@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "analizador-gastos"
-version = "1.0.0"
-description = "Analizador de gastos personales desde archivos CSV, con reportes en texto y JSON"
+version = "1.1.0"
+description = "Analizador de gastos personales desde archivos CSV, con reportes en texto, JSON y Markdown"
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
