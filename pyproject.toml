@@ -1,0 +1,57 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "analizador-gastos"
+version = "1.0.0"
+description = "Analizador de gastos personales desde archivos CSV, con reportes en texto y JSON"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Brandon Albert Taipe Aguilar", email = "brandontaipe3@gmail.com" }]
+keywords = ["gastos", "finanzas", "csv", "cli", "reportes"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Console",
+    "Intended Audience :: End Users/Desktop",
+    "Natural Language :: Spanish",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Office/Business :: Financial",
+]
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "ruff>=0.4"]
+
+[project.urls]
+Repository = "https://github.com/brandontbp3/analizador-gastos"
+Issues = "https://github.com/brandontbp3/analizador-gastos/issues"
+
+[project.scripts]
+analizador-gastos = "analizador_gastos.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+analizador_gastos = ["datos/*.csv"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "W"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["analizador_gastos"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
